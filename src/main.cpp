@@ -14,7 +14,7 @@
 #include "gfx/Input.hpp"
 #include "gfx/MeshUtils.hpp"
 #include "io/ImageLoader.hpp"
-#include "shader.hpp"
+#include "Shader.hpp"
 
 const glm::mat4 identityMatrix = glm::mat4(1.0f);
 extern bool flashlightOn;
