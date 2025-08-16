@@ -13,6 +13,7 @@
 #include "core/InputCallbacks.hpp"
 #include "gfx/Input.hpp"
 #include "gfx/MeshUtils.hpp"
+#include "gfx/Model.hpp"
 #include "io/ImageLoader.hpp"
 #include "Shader.hpp"
 
@@ -20,8 +21,7 @@ const glm::mat4 identityMatrix = glm::mat4(1.0f);
 extern bool flashlightOn;
 
 int main(void)
-{
-    GLFWwindow* window;
+{    GLFWwindow* window;
     int initSuccess = 1;
 
     if (InitializeOpenGL(window) != initSuccess)
@@ -29,30 +29,28 @@ int main(void)
         return -1;
     }
 
+    stbi_set_flip_vertically_on_load(true);
+
     unsigned int boxVAO, lightVAO;
     
-    const char* boxVertexShaderPath = "../shaders/3.3.box_vert.shad";
-    const char* boxFragmentShaderPath = "../shaders/3.3.box_frag.shad";
+    const char* backpackVertexShaderPath = "../shaders/backpack_vert.shad";
+    const char* backpackFragmentShaderPath = "../shaders/backpack_frag.shad";
 
     const char* lightVertexShaderPath = "../shaders/3.3.light_vert.shad";
     const char* lightFragmentShaderPath = "../shaders/3.3.light_frag.shad";
 
-    Shader boxShader(boxVertexShaderPath, boxFragmentShaderPath);
+    Shader backpackShader(backpackVertexShaderPath, backpackFragmentShaderPath);
     Shader lightShader(lightVertexShaderPath, lightFragmentShaderPath);
+        
+    const char* backpackModelPath = "../assets/models/backpack/backpack.obj";
+    Model ourModel(backpackModelPath);
 
     int numOfVerticesInBox = 36;
-    int amountOfBoxes = 4;
     int amountOfLightPoints = 2;
 
     glm::vec3 dirLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 spotLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
-    glm::vec3 boxPositions[] = {
-        glm::vec3(1.5f, 0.0f, 1.5f),
-        glm::vec3(-0.5f, 0.0f, -0.5f),
-        glm::vec3(-1.0f, 0.0f, 2.0f),
-        glm::vec3(2.0f, 0.0f, -2.0f),
-    };
     glm::vec3 lightPointPositions[] = {
         glm::vec3(5.0f, 0.0f, 0.0f),
         glm::vec3(-4.0f, 0.0f, 0.0f),
@@ -67,9 +65,6 @@ int main(void)
 
     int lightBufferSize = numOfVerticesInBox * 6;
     CreateLightVao(lightVAO, lightBoxVertices, lightBufferSize);
-
-    int boxBufferSize = numOfVerticesInBox * 8;
-    CreateBoxVao(boxVAO, boxVertices, boxBufferSize);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -88,20 +83,6 @@ int main(void)
     glm::mat4 boxModelMatrix = identityMatrix;
     glm::mat4 lightModelMatrix = identityMatrix;
     
-    unsigned int diffuseMap = LoadTexture("../assets/textures/crate.png");
-    unsigned int specularMap = LoadTexture("../assets/textures/specularMap.png");
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, specularMap);
-
-    boxShader.UseProgram();
-    boxShader.SetUniformInt("material.diffuse", 0);
-    boxShader.SetUniformInt("material.specular", 1);
-    boxShader.SetUniformFloat("material.shininess", 32.0f);
-
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -134,59 +115,52 @@ int main(void)
 
             glDrawArrays(GL_TRIANGLES, 0, numOfVerticesInBox);
         }
-
-        glBindVertexArray(boxVAO);
         
-        boxShader.UseProgram();
+        backpackShader.UseProgram();
 
-        for (int boxIndex = 0; boxIndex < amountOfBoxes; boxIndex++)
-        {
-            boxModelMatrix = glm::translate(identityMatrix, boxPositions[boxIndex]);
-            boxModelMatrix = 
-                glm::rotate(
-                    boxModelMatrix, 
-                    glm::radians(20.0f * boxIndex), 
-                    glm::normalize(glm::vec3(0.3f, 0.3f, 0.3f)));
-            boxShader.SetUniformMat4("model", boxModelMatrix);
-            boxShader.SetUniformMat4("view", mainCamera->GetViewMatrix());
-            boxShader.SetUniformMat4("projection", projectionMatrix);
-            boxShader.SetUniformVec3("cameraPos", mainCamera->Position);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); 
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+        backpackShader.SetUniformMat4("model", model);
+        backpackShader.SetUniformMat4("view", mainCamera->GetViewMatrix());
+        backpackShader.SetUniformMat4("projection", projectionMatrix);
+        backpackShader.SetUniformVec3("cameraPos", mainCamera->Position);
 
-            boxShader.SetUniformVec3("dirLight[0].position", dirLightPosition);
-            boxShader.SetUniformVec3("dirLight[0].ambient", dirLightColor * 0.1f);
-            boxShader.SetUniformVec3("dirLight[0].diffuse", dirLightColor);
-            boxShader.SetUniformVec3("dirLight[0].specular", dirLightColor);
+        backpackShader.SetUniformVec3("dirLight[0].position", dirLightPosition);
+        backpackShader.SetUniformVec3("dirLight[0].ambient", dirLightColor * 0.1f);
+        backpackShader.SetUniformVec3("dirLight[0].diffuse", dirLightColor);
+        backpackShader.SetUniformVec3("dirLight[0].specular", dirLightColor);
 
-            boxShader.SetUniformVec3("pointLight[0].position", lightPointPositions[0]);
-            boxShader.SetUniformVec3("pointLight[0].ambient", lightPointColors[0] * 0.1f);
-            boxShader.SetUniformVec3("pointLight[0].diffuse", lightPointColors[0]);
-            boxShader.SetUniformVec3("pointLight[0].specular", lightPointColors[0]);
-            boxShader.SetUniformFloat("pointLight[0].constant", 1.0f);
-            boxShader.SetUniformFloat("pointLight[0].linear", 0.05f);
-            boxShader.SetUniformFloat("pointLight[0].quadratic",0.02f);
+        backpackShader.SetUniformVec3("pointLight[0].position", lightPointPositions[0]);
+        backpackShader.SetUniformVec3("pointLight[0].ambient", lightPointColors[0] * 0.1f);
+        backpackShader.SetUniformVec3("pointLight[0].diffuse", lightPointColors[0]);
+        backpackShader.SetUniformVec3("pointLight[0].specular", lightPointColors[0]);
+        backpackShader.SetUniformFloat("pointLight[0].constant", 1.0f);
+        backpackShader.SetUniformFloat("pointLight[0].linear", 0.05f);
+        backpackShader.SetUniformFloat("pointLight[0].quadratic",0.02f);
 
-            boxShader.SetUniformVec3("pointLight[1].position", lightPointPositions[1]);
-            boxShader.SetUniformVec3("pointLight[1].ambient", lightPointColors[1] * 0.1f);
-            boxShader.SetUniformVec3("pointLight[1].diffuse", lightPointColors[1]);
-            boxShader.SetUniformVec3("pointLight[1].specular", lightPointColors[1]);
-            boxShader.SetUniformFloat("pointLight[1].constant", 1.0f);
-            boxShader.SetUniformFloat("pointLight[1].linear", 0.05f);
-            boxShader.SetUniformFloat("pointLight[1].quadratic",0.02f);
+        backpackShader.SetUniformVec3("pointLight[1].position", lightPointPositions[1]);
+        backpackShader.SetUniformVec3("pointLight[1].ambient", lightPointColors[1] * 0.1f);
+        backpackShader.SetUniformVec3("pointLight[1].diffuse", lightPointColors[1]);
+        backpackShader.SetUniformVec3("pointLight[1].specular", lightPointColors[1]);
+        backpackShader.SetUniformFloat("pointLight[1].constant", 1.0f);
+        backpackShader.SetUniformFloat("pointLight[1].linear", 0.05f);
+        backpackShader.SetUniformFloat("pointLight[1].quadratic",0.02f);
+        
+        backpackShader.SetUniformVec3("spotLight[0].position", mainCamera->Position);
+        backpackShader.SetUniformVec3("spotLight[0].direction", mainCamera->Front);
+        backpackShader.SetUniformFloat("spotLight[0].cutOff", glm::cos(glm::radians(10.0f)));
+        backpackShader.SetUniformFloat("spotLight[0].outerCutOff", glm::cos(glm::radians(12.0f)));
+        backpackShader.SetUniformBool("spotLight[0].on", flashlightOn);
+        backpackShader.SetUniformVec3("spotLight[0].ambient", spotLightColor * 0.1f);
+        backpackShader.SetUniformVec3("spotLight[0].diffuse", spotLightColor);
+        backpackShader.SetUniformVec3("spotLight[0].specular", spotLightColor);
+        backpackShader.SetUniformFloat("spotLight[0].constant", 1.0f);
+        backpackShader.SetUniformFloat("spotLight[0].linear", 0.09f);
+        backpackShader.SetUniformFloat("spotLight[0].quadratic",0.032f);
 
-            boxShader.SetUniformVec3("spotLight[0].position", mainCamera->Position);
-            boxShader.SetUniformVec3("spotLight[0].direction", mainCamera->Front);
-            boxShader.SetUniformFloat("spotLight[0].cutOff", glm::cos(glm::radians(10.0f)));
-            boxShader.SetUniformFloat("spotLight[0].outerCutOff", glm::cos(glm::radians(12.0f)));
-            boxShader.SetUniformBool("spotLight[0].on", flashlightOn);
-            boxShader.SetUniformVec3("spotLight[0].ambient", spotLightColor * 0.1f);
-            boxShader.SetUniformVec3("spotLight[0].diffuse", spotLightColor);
-            boxShader.SetUniformVec3("spotLight[0].specular", spotLightColor);
-            boxShader.SetUniformFloat("spotLight[0].constant", 1.0f);
-            boxShader.SetUniformFloat("spotLight[0].linear", 0.09f);
-            boxShader.SetUniformFloat("spotLight[0].quadratic",0.032f);
 
-            glDrawArrays(GL_TRIANGLES, 0, numOfVerticesInBox);
-        }
+        ourModel.Draw(backpackShader);
 
         glfwSwapBuffers(window);
         ProcessInput(window, mainCamera.get(), deltaTime);

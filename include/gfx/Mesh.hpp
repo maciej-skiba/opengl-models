@@ -1,10 +1,9 @@
+#pragma once
+
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
 #include <Shader.hpp>
-
-using std::vector;
-using std::string;
 
 struct Vertex {
     glm::vec3 Position;
@@ -14,17 +13,18 @@ struct Vertex {
 
 struct Texture {
     unsigned int id;
-    string type;
+    std::string type;
+    std::string path;
 };  
 
 class Mesh {
     public:
         // mesh data
-        vector<Vertex>       vertices;
-        vector<unsigned int> indices;
-        vector<Texture>      textures;
+        std::vector<Vertex>       vertices;
+        std::vector<unsigned int> indices;
+        std::vector<Texture>      textures;
 
-        Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures);
+        Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
         void Draw(Shader &shader);
     private:
         //  render data

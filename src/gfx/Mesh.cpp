@@ -1,6 +1,6 @@
-#include "include/gfx/Mesh.hpp"
+#include "gfx/Mesh.hpp"
 
-Mesh::Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
 {
     this->vertices = vertices;
     this->indices = indices;
@@ -18,8 +18,8 @@ void Mesh::Draw(Shader &shader)
     {
         glActiveTexture(GL_TEXTURE0 + textureIndex); // activate proper texture unit before binding
         // retrieve texture number (the N in diffuse_textureN)
-        string number;
-        string name = textures[textureIndex].type;
+        std::string number;
+        std::string name = textures[textureIndex].type;
         if(name == "texture_diffuse")
             number = std::to_string(diffuseNr++);
         else if(name == "texture_specular")
